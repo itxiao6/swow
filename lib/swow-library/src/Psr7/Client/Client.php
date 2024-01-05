@@ -159,6 +159,28 @@ class Client extends Socket implements ClientInterface, ProtocolTypeInterface
 
         return $response;
     }
+    /**
+     * @param RequestInterface $request
+     * @return ResponseInterface
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
+    public function upgradeToHttp2(RequestInterface $request): ResponseInterface
+    {
+        $upgradeHeaders = [
+            'Connection' => 'Upgrade',
+            'Upgrade' => 'h2c',
+        ];
+        $request = Psr7::withHeaders($request, $upgradeHeaders);
+
+        $response = $this->sendRequest($request);
+
+        if ($response->getStatusCode() !== HttpStatus::OK) {
+            throw new ClientRequestException($request, $response->getReasonPhrase(), $response->getStatusCode());
+        }
+        $this->upgraded(static::PROTOCOL_TYPE_HTTP2);
+
+        return $response;
+    }
 
     protected function convertToClientException(Exception $exception, RequestInterface $request): ClientExceptionInterface
     {
